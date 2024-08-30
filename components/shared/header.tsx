@@ -34,7 +34,9 @@ export const Header: React.FC<Props> = ({ className }) => {
         </div>
 
         <div>
-          <Button>Начать</Button>
+          <Link href="/register">
+            <Button>Начать</Button>
+          </Link>
         </div>
       </Container>
     </header>
