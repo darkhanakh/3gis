@@ -1,62 +1,148 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Github, LoaderCircle } from 'lucide-react';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { toast } from '@/hooks/use-toast';
 
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
+  type: 'login' | 'register';
+}
 
-export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
+const formSchema = z.object({
+  email: z.string().email({
+    message: 'Пожалуйста, введите корректный email.',
+  }),
+  password: z.string().min(8, {
+    message: 'Пароль должен содержать не менее 8 символов.',
+  }),
+});
+
+export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
-  async function onSubmit(event: React.SyntheticEvent) {
-    event.preventDefault();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    setTimeout(() => {
+    const endpoint =
+      type === 'login' ? '/api/auth/callback/credentials' : '/api/register';
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (response.ok) {
+        if (type === 'register') {
+          toast({
+            title: 'Аккаунт создан',
+            description: 'Пожалуйста, войдите в систему.',
+          });
+          router.push('/login');
+        } else {
+          router.push('/dashboard');
+        }
+      } else {
+        const data = await response.json();
+        throw new Error(data.message || 'Произошла ошибка');
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Произошла неизвестная ошибка',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 3000);
+    }
   }
 
   return (
     <div className={cn('grid gap-6', className)} {...props}>
-      <form onSubmit={onSubmit}>
-        <div className="grid gap-2">
-          <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="email">
-              Email
-            </Label>
-            <Input
-              id="email"
-              placeholder="Email"
-              type="email"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect="off"
-              disabled={isLoading}
-            />
-            <Input
-              id="password"
-              placeholder="Password"
-              type="password"
-              autoCapitalize="none"
-              autoComplete="off"
-              autoCorrect="off"
-              disabled={isLoading}
-            />
-          </div>
-          <Button disabled={isLoading}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="name@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Пароль</FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button className="w-full" type="submit" disabled={isLoading}>
             {isLoading && (
               <LoaderCircle size={16} className="mr-2 animate-spin" />
             )}
-            Войти с помощью email
+            {type === 'login' ? 'Войти' : 'Зарегистрироваться'}
           </Button>
+        </form>
+      </Form>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
         </div>
-      </form>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Или продолжить с
+          </span>
+        </div>
+      </div>
+      <Button variant="outline" type="button" disabled={isLoading}>
+        {isLoading ? (
+          <LoaderCircle size={16} className="mr-2 animate-spin" />
+        ) : (
+          <Github className="mr-2 h-4 w-4" />
+        )}{' '}
+        Github
+      </Button>
     </div>
   );
 }

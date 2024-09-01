@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Roboto } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
+import { Providers } from '@/app/providers';
 
 const font = Roboto({ subsets: ['latin'], weight: '400' });
 
@@ -16,7 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn(font.className, 'dark')}>{children}</body>
+      <Providers>
+        <body className={cn(font.className, 'dark')}>{children}</body>
+      </Providers>
     </html>
   );
 }

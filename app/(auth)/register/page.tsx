@@ -1,5 +1,3 @@
-import { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
@@ -48,7 +46,24 @@ export default function RegisterPage() {
                 Введите свой email ниже, чтобы создать аккаунт
               </p>
             </div>
-            <UserAuthForm />
+            <UserAuthForm type="register" />
+            <p className="px-8 text-center text-sm text-muted-foreground">
+              Нажимая продолжить, вы соглашаетесь с нашими{' '}
+              <Link
+                href="/terms"
+                className="underline underline-offset-4 hover:text-primary"
+              >
+                Условиями использования
+              </Link>{' '}
+              и{' '}
+              <Link
+                href="/privacy"
+                className="underline underline-offset-4 hover:text-primary"
+              >
+                Политикой конфиденциальности
+              </Link>
+              .
+            </p>
           </div>
         </div>
       </div>
