@@ -25,7 +25,14 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'login' | 'register';
 }
 
+// Updated schema with the 'name' field for registration
 const formSchema = z.object({
+  name: z
+    .string()
+    .min(2, {
+      message: 'Имя должно содержать не менее 2 символов.',
+    })
+    .optional(),
   email: z.string().email({
     message: 'Пожалуйста, введите корректный email.',
   }),
@@ -41,6 +48,7 @@ export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
     },
@@ -91,6 +99,22 @@ export function UserAuthForm({ className, type, ...props }: UserAuthFormProps) {
     <div className={cn('grid gap-6', className)} {...props}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Conditionally render the 'name' field for registration */}
+          {type === 'register' && (
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Имя</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ваше имя" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="email"
