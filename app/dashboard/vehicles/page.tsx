@@ -1,22 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -24,224 +17,249 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 
-const formSchema = z.object({
-  vehicleModel: z.string().min(2, {
-    message: 'Vehicle model must be at least 2 characters.',
-  }),
-  licensePlate: z.string().min(2, {
-    message: 'License plate must be at least 2 characters.',
-  }),
-  trackerSerialNumber: z.string().min(5, {
-    message: 'Tracker serial number must be at least 5 characters.',
-  }),
-  tankCapacity: z.number().positive({
-    message: 'Tank capacity must be a positive number.',
-  }),
-  fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']),
-  currentLatitude: z.number().min(-90).max(90),
-  currentLongitude: z.number().min(-180).max(180),
-});
+interface Vehicle {
+  id: string;
+  driver: string;
+  phoneNumber: string;
+  currentMission: string;
+  location: string;
+  speed: number;
+  malfunctions: number;
+  vehicleType: string;
+  status: 'active' | 'inactive';
+}
 
-export default function RegisterCarPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+const mockVehicles: Vehicle[] = [
+  {
+    id: '1',
+    driver: 'Jane Cooper',
+    phoneNumber: '(225) 555-0118',
+    currentMission: 'Delivery',
+    location: 'United States',
+    speed: 60,
+    malfunctions: 0,
+    vehicleType: 'Truck',
+    status: 'active',
+  },
+  {
+    id: '2',
+    driver: 'Floyd Miles',
+    phoneNumber: '(205) 555-0100',
+    currentMission: 'Pickup',
+    location: 'Kiribati',
+    speed: 0,
+    malfunctions: 1,
+    vehicleType: 'Van',
+    status: 'inactive',
+  },
+  {
+    id: '3',
+    driver: 'Ronald Richards',
+    phoneNumber: '(302) 555-0107',
+    currentMission: 'Maintenance',
+    location: 'Israel',
+    speed: 30,
+    malfunctions: 2,
+    vehicleType: 'Car',
+    status: 'inactive',
+  },
+  {
+    id: '4',
+    driver: 'Marvin McKinney',
+    phoneNumber: '(252) 555-0126',
+    currentMission: 'Delivery',
+    location: 'Iran',
+    speed: 75,
+    malfunctions: 0,
+    vehicleType: 'Truck',
+    status: 'active',
+  },
+  {
+    id: '5',
+    driver: 'Jerome Bell',
+    phoneNumber: '(629) 555-0129',
+    currentMission: 'Pickup',
+    location: 'Réunion',
+    speed: 45,
+    malfunctions: 1,
+    vehicleType: 'Van',
+    status: 'active',
+  },
+  {
+    id: '6',
+    driver: 'Kathryn Murphy',
+    phoneNumber: '(406) 555-0120',
+    currentMission: 'Delivery',
+    location: 'Curaçao',
+    speed: 55,
+    malfunctions: 0,
+    vehicleType: 'Truck',
+    status: 'active',
+  },
+  {
+    id: '7',
+    driver: 'Jacob Jones',
+    phoneNumber: '(208) 555-0112',
+    currentMission: 'Maintenance',
+    location: 'Brazil',
+    speed: 0,
+    malfunctions: 3,
+    vehicleType: 'Car',
+    status: 'inactive',
+  },
+  {
+    id: '8',
+    driver: 'Kristin Watson',
+    phoneNumber: '(704) 555-0127',
+    currentMission: 'Delivery',
+    location: 'Åland Islands',
+    speed: 65,
+    malfunctions: 0,
+    vehicleType: 'Van',
+    status: 'active',
+  },
+];
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      vehicleModel: '',
-      licensePlate: '',
-      trackerSerialNumber: '',
-      tankCapacity: 0,
-      fuelType: 'Gasoline',
-      currentLatitude: 0,
-      currentLongitude: 0,
-    },
+interface Props {
+  className?: string;
+}
+
+const VehiclesPage: React.FC<Props> = ({ className }) => {
+  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const filteredVehicles = vehicles.filter(
+    (vehicle) =>
+      vehicle.driver.toLowerCase().includes(search.toLowerCase()) ||
+      vehicle.location.toLowerCase().includes(search.toLowerCase()) ||
+      vehicle.vehicleType.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const sortedVehicles = [...filteredVehicles].sort((a, b) => {
+    if (sortBy === 'newest') return b.id.localeCompare(a.id);
+    if (sortBy === 'oldest') return a.id.localeCompare(b.id);
+    if (sortBy === 'status') return a.status.localeCompare(b.status);
+    return 0;
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/register-car', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to register car');
-      }
-
-      toast({
-        title: 'Success',
-        description: 'New car has been registered with 3GIS tracker.',
-      });
-      router.push('/dashboard/vehicles'); // Redirect to vehicles list
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to register car. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const totalPages = Math.ceil(sortedVehicles.length / itemsPerPage);
+  const paginatedVehicles = sortedVehicles.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-5">
-        Register New Car with 3GIS Tracker
-      </h1>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="vehicleModel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle Model</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. Toyota Camry" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Enter the model of the vehicle.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="licensePlate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>License Plate</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. ABC123" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Enter the vehicle's license plate number.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="trackerSerialNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>3GIS Tracker Serial Number</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. 3GIS12345" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Enter the serial number of the 3GIS tracker installed in the
-                  vehicle.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="tankCapacity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tank Capacity (liters)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Enter the fuel tank capacity in liters.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fuelType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fuel Type</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
+    <div className={`p-6 ${className}`}>
+      <h1 className="text-2xl font-bold mb-6">Транспорт</h1>
+      <div className="flex justify-between mb-4">
+        <Input
+          className="max-w-sm"
+          placeholder="Search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="oldest">Oldest</SelectItem>
+            <SelectItem value="status">Status</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID транспорта</TableHead>
+            <TableHead>Водитель</TableHead>
+            <TableHead>Phone Number</TableHead>
+            <TableHead>Текущая миссия</TableHead>
+            <TableHead>Локация</TableHead>
+            <TableHead>Скорость</TableHead>
+            <TableHead>Кол-во неисправностей</TableHead>
+            <TableHead>Вид транспорта</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {paginatedVehicles.map((vehicle) => (
+            <TableRow key={vehicle.id}>
+              <TableCell>{vehicle.id}</TableCell>
+              <TableCell>{vehicle.driver}</TableCell>
+              <TableCell>{vehicle.phoneNumber}</TableCell>
+              <TableCell>{vehicle.currentMission}</TableCell>
+              <TableCell>{vehicle.location}</TableCell>
+              <TableCell>{vehicle.speed} km/h</TableCell>
+              <TableCell>{vehicle.malfunctions}</TableCell>
+              <TableCell>{vehicle.vehicleType}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    vehicle.status === 'active' ? 'default' : 'secondary'
+                  }
                 >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select fuel type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Gasoline">Gasoline</SelectItem>
-                    <SelectItem value="Diesel">Diesel</SelectItem>
-                    <SelectItem value="Electric">Electric</SelectItem>
-                    <SelectItem value="Hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Select the type of fuel the vehicle uses.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="currentLatitude"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Latitude</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(parseFloat(e.target.value))
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="currentLongitude"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Longitude</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(parseFloat(e.target.value))
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register Car'}
-          </Button>
-        </form>
-      </Form>
+                  {vehicle.status}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(1)}
+          disabled={currentPage === 1}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(totalPages)}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
-}
+};
+
+export default VehiclesPage;
