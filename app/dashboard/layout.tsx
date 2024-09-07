@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,6 +16,10 @@ import {
   Truck,
   Users,
   Loader2,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  List,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
@@ -33,7 +37,20 @@ const menuItems = [
     name: 'vehicles',
     icon: Truck,
     label: 'Транспорт',
-    href: '/dashboard/vehicles',
+    subItems: [
+      {
+        name: 'create-vehicle',
+        icon: Plus,
+        label: 'Создать транспорт',
+        href: '/dashboard/vehicles/create',
+      },
+      {
+        name: 'all-vehicles',
+        icon: List,
+        label: 'Все транспорты',
+        href: '/dashboard/vehicles',
+      },
+    ],
   },
   {
     name: 'shipments',
@@ -69,6 +86,7 @@ export default function DashboardLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -106,6 +124,10 @@ export default function DashboardLayout({
     return null;
   }
 
+  const toggleSubmenu = (name: string) => {
+    setOpenSubmenu(openSubmenu === name ? null : name);
+  };
+
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar */}
@@ -120,15 +142,54 @@ export default function DashboardLayout({
           <ScrollArea className="flex-1 py-4">
             <nav className="grid gap-1 px-2">
               {menuItems.map((item) => (
-                <Link key={item.name} href={item.href}>
-                  <Button
-                    variant={pathname === item.href ? 'secondary' : 'ghost'}
-                    className="w-full justify-start"
-                  >
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {item.label}
-                  </Button>
-                </Link>
+                <div key={item.name}>
+                  {item.subItems ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => toggleSubmenu(item.name)}
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                        {openSubmenu === item.name ? (
+                          <ChevronDown className="ml-auto h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="ml-auto h-4 w-4" />
+                        )}
+                      </Button>
+                      {openSubmenu === item.name && (
+                        <div className="ml-4 mt-1 grid gap-1">
+                          {item.subItems.map((subItem) => (
+                            <Link key={subItem.name} href={subItem.href}>
+                              <Button
+                                variant={
+                                  pathname === subItem.href
+                                    ? 'secondary'
+                                    : 'ghost'
+                                }
+                                className="w-full justify-start"
+                              >
+                                <subItem.icon className="mr-2 h-4 w-4" />
+                                {subItem.label}
+                              </Button>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <Link href={item.href}>
+                      <Button
+                        variant={pathname === item.href ? 'secondary' : 'ghost'}
+                        className="w-full justify-start"
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               ))}
             </nav>
           </ScrollArea>
@@ -150,6 +211,9 @@ export default function DashboardLayout({
         <header className="flex h-14 items-center border-b px-6">
           <h1 className="text-lg font-semibold">
             {menuItems.find((item) => item.href === pathname)?.label ||
+              menuItems.find((item) =>
+                item.subItems?.some((subItem) => subItem.href === pathname)
+              )?.label ||
               'Панель управления'}
           </h1>
         </header>

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -24,132 +25,65 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Plus,
 } from 'lucide-react';
 
 interface Vehicle {
   id: string;
   driver: string;
   phoneNumber: string;
-  currentMission: string;
-  location: string;
+  currentMission: string | null;
+  location: string | null;
   speed: number;
   malfunctions: number;
   vehicleType: string;
-  status: 'active' | 'inactive';
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
-
-const mockVehicles: Vehicle[] = [
-  {
-    id: '1',
-    driver: 'Jane Cooper',
-    phoneNumber: '(225) 555-0118',
-    currentMission: 'Delivery',
-    location: 'United States',
-    speed: 60,
-    malfunctions: 0,
-    vehicleType: 'Truck',
-    status: 'active',
-  },
-  {
-    id: '2',
-    driver: 'Floyd Miles',
-    phoneNumber: '(205) 555-0100',
-    currentMission: 'Pickup',
-    location: 'Kiribati',
-    speed: 0,
-    malfunctions: 1,
-    vehicleType: 'Van',
-    status: 'inactive',
-  },
-  {
-    id: '3',
-    driver: 'Ronald Richards',
-    phoneNumber: '(302) 555-0107',
-    currentMission: 'Maintenance',
-    location: 'Israel',
-    speed: 30,
-    malfunctions: 2,
-    vehicleType: 'Car',
-    status: 'inactive',
-  },
-  {
-    id: '4',
-    driver: 'Marvin McKinney',
-    phoneNumber: '(252) 555-0126',
-    currentMission: 'Delivery',
-    location: 'Iran',
-    speed: 75,
-    malfunctions: 0,
-    vehicleType: 'Truck',
-    status: 'active',
-  },
-  {
-    id: '5',
-    driver: 'Jerome Bell',
-    phoneNumber: '(629) 555-0129',
-    currentMission: 'Pickup',
-    location: 'Réunion',
-    speed: 45,
-    malfunctions: 1,
-    vehicleType: 'Van',
-    status: 'active',
-  },
-  {
-    id: '6',
-    driver: 'Kathryn Murphy',
-    phoneNumber: '(406) 555-0120',
-    currentMission: 'Delivery',
-    location: 'Curaçao',
-    speed: 55,
-    malfunctions: 0,
-    vehicleType: 'Truck',
-    status: 'active',
-  },
-  {
-    id: '7',
-    driver: 'Jacob Jones',
-    phoneNumber: '(208) 555-0112',
-    currentMission: 'Maintenance',
-    location: 'Brazil',
-    speed: 0,
-    malfunctions: 3,
-    vehicleType: 'Car',
-    status: 'inactive',
-  },
-  {
-    id: '8',
-    driver: 'Kristin Watson',
-    phoneNumber: '(704) 555-0127',
-    currentMission: 'Delivery',
-    location: 'Åland Islands',
-    speed: 65,
-    malfunctions: 0,
-    vehicleType: 'Van',
-    status: 'active',
-  },
-];
 
 interface Props {
   className?: string;
 }
 
 const VehiclesPage: React.FC<Props> = ({ className }) => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      const response = await fetch('/api/vehicles');
+      if (!response.ok) {
+        throw new Error('Failed to fetch vehicles');
+      }
+      const data = await response.json();
+      setVehicles(data);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    }
+  };
 
   const filteredVehicles = vehicles.filter(
     (vehicle) =>
       vehicle.driver.toLowerCase().includes(search.toLowerCase()) ||
-      vehicle.location.toLowerCase().includes(search.toLowerCase()) ||
+      (vehicle.location &&
+        vehicle.location.toLowerCase().includes(search.toLowerCase())) ||
       vehicle.vehicleType.toLowerCase().includes(search.toLowerCase())
   );
 
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
-    if (sortBy === 'newest') return b.id.localeCompare(a.id);
-    if (sortBy === 'oldest') return a.id.localeCompare(b.id);
+    if (sortBy === 'newest')
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (sortBy === 'oldest')
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     if (sortBy === 'status') return a.status.localeCompare(b.status);
     return 0;
   });
@@ -162,7 +96,12 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
 
   return (
     <div className={`p-6 ${className}`}>
-      <h1 className="text-2xl font-bold mb-6">Транспорт</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Транспорт</h1>
+        <Button onClick={() => router.push('/dashboard/vehicles/create')}>
+          <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+        </Button>
+      </div>
       <div className="flex justify-between mb-4">
         <Input
           className="max-w-sm"
@@ -201,8 +140,8 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
               <TableCell>{vehicle.id}</TableCell>
               <TableCell>{vehicle.driver}</TableCell>
               <TableCell>{vehicle.phoneNumber}</TableCell>
-              <TableCell>{vehicle.currentMission}</TableCell>
-              <TableCell>{vehicle.location}</TableCell>
+              <TableCell>{vehicle.currentMission || '-'}</TableCell>
+              <TableCell>{vehicle.location || '-'}</TableCell>
               <TableCell>{vehicle.speed} km/h</TableCell>
               <TableCell>{vehicle.malfunctions}</TableCell>
               <TableCell>{vehicle.vehicleType}</TableCell>
