@@ -38,8 +38,8 @@ const menuItems = [
   {
     name: 'shipments',
     icon: Boxes,
-    label: 'Отправления',
-    href: '/dashboard/shipments',
+    label: 'Заявки',
+    href: '/dashboard/invoices',
   },
   {
     name: 'analytics',

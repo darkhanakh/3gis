@@ -24,4 +24,18 @@ model User {
   role          Role      @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  Request       Request[]
+}
+
+model Request {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  title       String
+  description String
+  status      String
+  type        String
+  urgency     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

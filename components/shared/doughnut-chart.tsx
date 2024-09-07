@@ -26,5 +26,6 @@ export function DoughnutChart() {
     },
   };
 
+  // @ts-ignore
   return <Doughnut data={data} options={options} />;
 }
