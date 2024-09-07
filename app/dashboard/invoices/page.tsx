@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import useSWRMutation from 'swr/mutation';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -30,7 +31,7 @@ const requestSchema = z.object({
   description: z
     .string()
     .min(10, 'Описание должно содержать не менее 10 символов'),
-  requestType: z.enum(['repair', 'maintenance', 'other']),
+  type: z.enum(['repair', 'maintenance', 'other']),
   urgency: z.enum(['low', 'medium', 'high']),
 });
 
@@ -40,25 +41,39 @@ interface Props {
   className?: string;
 }
 
-const DriverRequestPage: React.FC<Props> = ({ className }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+async function sendRequest(url: string, { arg }: { arg: RequestFormValues }) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(arg),
+  });
 
+  if (!response.ok) {
+    throw new Error('Не удалось отправить запрос');
+  }
+
+  return response.json();
+}
+
+const DriverRequestPage: React.FC<Props> = ({ className }) => {
   const form = useForm<RequestFormValues>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
       title: '',
       description: '',
-      requestType: 'repair',
+      type: 'repair',
       urgency: 'medium',
     },
   });
 
+  const { trigger, isMutating } = useSWRMutation('/api/requests', sendRequest);
+
   const onSubmit = async (data: RequestFormValues) => {
-    setIsSubmitting(true);
     try {
-      // Симуляция API вызова
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('Форма отправлена:', data);
+      const result = await trigger(data);
+      console.log('Запрос отправлен:', result);
       toast({
         title: 'Запрос отправлен',
         description: 'Ваш запрос был успешно отправлен.',
@@ -69,11 +84,9 @@ const DriverRequestPage: React.FC<Props> = ({ className }) => {
       toast({
         title: 'Ошибка отправки',
         description:
-          'Произошла ошибка при отправке вашего запроса. Пожалуйста, попробуйте еще раз.',
+          'Произошла ошибка при отправке вашего запроса. Попробуйте еще раз.',
         variant: 'destructive',
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -120,7 +133,7 @@ const DriverRequestPage: React.FC<Props> = ({ className }) => {
           />
           <FormField
             control={form.control}
-            name="requestType"
+            name="type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Тип запроса</FormLabel>
@@ -174,8 +187,8 @@ const DriverRequestPage: React.FC<Props> = ({ className }) => {
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Отправка...' : 'Отправить запрос'}
+          <Button type="submit" disabled={isMutating}>
+            {isMutating ? 'Отправка...' : 'Отправить запрос'}
           </Button>
         </form>
       </Form>
