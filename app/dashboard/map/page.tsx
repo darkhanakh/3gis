@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L, { Icon, LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
+import { VehicleDetails } from '@/components/shared/vehicle-details';
 
 // CSS for leaflet-routing-machine
 const routingMachineStyle = `
@@ -30,13 +31,23 @@ const routingMachineStyle = `
 }
 `;
 
-interface Vehicle {
+export interface Vehicle {
   id: string;
   position: LatLngTuple;
   fuelAmount: number;
   driver: string;
   startPoint: LatLngTuple;
   endPoint: LatLngTuple;
+  status: string;
+  speed: number;
+  location: string;
+  weather: {
+    temperature: number;
+    humidity: number;
+    precipitation: number;
+  };
+  engineLoad: number;
+  arrivalTime: string;
 }
 
 const carIcon = new Icon({
@@ -50,12 +61,22 @@ const almaty: LatLngTuple = [43.222, 76.8512];
 const astana: LatLngTuple = [51.1605, 71.4704];
 
 const vehicle: Vehicle = {
-  id: '1',
+  id: '57432',
   position: almaty,
-  fuelAmount: 100,
-  driver: 'Иван Петров',
+  fuelAmount: 67,
+  driver: 'Михаил Абай',
   startPoint: almaty,
   endPoint: astana,
+  status: 'В движении',
+  speed: 64,
+  location: '45632 3243, Белое, Петропавловск',
+  weather: {
+    temperature: 30,
+    humidity: 32,
+    precipitation: 0,
+  },
+  engineLoad: 40,
+  arrivalTime: '16:56',
 };
 
 function RoutingMachine({
@@ -71,24 +92,30 @@ function RoutingMachine({
   useEffect(() => {
     if (!map) return;
 
-    if (routingControlRef.current) {
-      map.removeControl(routingControlRef.current);
-    }
+    const addRoutingControl = () => {
+      if (routingControlRef.current) {
+        map.removeControl(routingControlRef.current);
+      }
 
-    routingControlRef.current = L.Routing.control({
-      waypoints: [L.latLng(startPoint), L.latLng(endPoint)],
-      routeWhileDragging: false,
-      showAlternatives: false,
-      fitSelectedRoutes: true,
-      lineOptions: {
-        styles: [{ color: '#6366F1', weight: 4 }],
-        extendToWaypoints: true,
-        missingRouteTolerance: 0,
-      },
-    }).addTo(map);
+      routingControlRef.current = L.Routing.control({
+        waypoints: [L.latLng(startPoint), L.latLng(endPoint)],
+        routeWhileDragging: false,
+        showAlternatives: false,
+        fitSelectedRoutes: true,
+        lineOptions: {
+          styles: [{ color: '#6366F1', weight: 4 }],
+          extendToWaypoints: true,
+          missingRouteTolerance: 0,
+        },
+      }).addTo(map);
+    };
+
+    // Use a short timeout to ensure the map is ready
+    const timeoutId = setTimeout(addRoutingControl, 100);
 
     return () => {
-      if (routingControlRef.current && map) {
+      clearTimeout(timeoutId);
+      if (routingControlRef.current) {
         map.removeControl(routingControlRef.current);
       }
     };
@@ -163,33 +190,20 @@ export default function MapPage() {
               position={currentPosition}
               icon={carIcon}
               eventHandlers={{
-                click: () => setSelectedVehicle(vehicle),
+                click: () => {
+                  console.log('Vehicle clicked:', vehicle);
+                  setSelectedVehicle(vehicle);
+                },
               }}
-            >
-              <Popup>
-                <div>
-                  <h3 className="font-semibold">Транспорт #{vehicle.id}</h3>
-                  <p>Водитель: {vehicle.driver}</p>
-                  <p>Топливо: {vehicle.fuelAmount}%</p>
-                </div>
-              </Popup>
-            </Marker>
+            />
           </MapContainer>
+          {selectedVehicle && (
+            <VehicleDetails
+              vehicle={selectedVehicle}
+              onClose={() => setSelectedVehicle(null)}
+            />
+          )}
         </div>
-        {selectedVehicle && (
-          <div className="mt-4 p-4 bg-muted rounded-lg">
-            <h3 className="font-semibold mb-2">
-              Информация о транспорте #{selectedVehicle.id}
-            </h3>
-            <p>Водитель: {selectedVehicle.driver}</p>
-            <p>Топливо: {selectedVehicle.fuelAmount}%</p>
-            <p>Маршрут: Алматы → Астана</p>
-            <p>
-              Прогресс:{' '}
-              {Math.round((progress / (routePoints.length - 1)) * 100)}%
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
