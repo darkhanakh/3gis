@@ -13,8 +13,6 @@ import {
 import L, { LatLngTuple, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VehicleDetails } from '@/components/shared/vehicle-details';
 
 const mapStyles = `
