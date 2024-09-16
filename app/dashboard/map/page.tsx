@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -37,9 +37,15 @@ const mapStyles = `
   padding: 5px;
   font-size: 12px;
 }
+.start-icon {
+  color: green;
+}
+.end-icon {
+  color: red;
+}
 `;
 
-export interface Vehicle {
+interface Vehicle {
   id: string;
   position: LatLngTuple;
   fuelAmount: number;
@@ -56,29 +62,55 @@ export interface Vehicle {
   };
   engineLoad: number;
   arrivalTime: string;
+  route: LatLngTuple[];
+  routeIndex: number;
+  bearing: number;
 }
 
-const almaty: LatLngTuple = [43.222, 76.8512];
-const astana: LatLngTuple = [51.1605, 71.4704];
-
-const vehicle: Vehicle = {
-  id: '57432',
-  position: almaty,
-  fuelAmount: 67,
-  driver: 'Михаил Абай',
-  startPoint: almaty,
-  endPoint: astana,
-  status: 'В движении',
-  speed: 64,
-  location: '45632 3243, Белое, Петропавловск',
-  weather: {
-    temperature: 30,
-    humidity: 32,
-    precipitation: 0,
+const mockVehicles: Vehicle[] = [
+  {
+    id: '57432',
+    position: [43.222, 76.8512],
+    fuelAmount: 67,
+    driver: 'Михаил Абай',
+    startPoint: [43.222, 76.8512], // Almaty
+    endPoint: [51.1605, 71.4704], // Astana
+    status: 'В движении',
+    speed: 64,
+    location: 'Алматы',
+    weather: {
+      temperature: 30,
+      humidity: 32,
+      precipitation: 0,
+    },
+    engineLoad: 40,
+    arrivalTime: '16:56',
+    route: [],
+    routeIndex: 0,
+    bearing: 0,
   },
-  engineLoad: 40,
-  arrivalTime: '16:56',
-};
+  {
+    id: '57433',
+    position: [53.2198, 63.6354],
+    fuelAmount: 75,
+    driver: 'Айдар Казбеков',
+    startPoint: [53.2198, 63.6354], // Kostanay
+    endPoint: [49.8028, 73.1021], // Karaganda
+    status: 'В движении',
+    speed: 72,
+    location: 'Костанай',
+    weather: {
+      temperature: 28,
+      humidity: 35,
+      precipitation: 0,
+    },
+    engineLoad: 35,
+    arrivalTime: '18:30',
+    route: [],
+    routeIndex: 0,
+    bearing: 0,
+  },
+];
 
 function RoutingMachine({
   startPoint,
@@ -104,6 +136,9 @@ function RoutingMachine({
         extendToWaypoints: true,
         missingRouteTolerance: 0,
       },
+      createMarker: function () {
+        return null;
+      }, // Disable default markers
     }).addTo(map);
 
     routingControl.on('routesfound', (e) => {
@@ -123,26 +158,22 @@ function RoutingMachine({
 }
 
 function VehicleMarker({
-  position,
-  bearing,
-  speed,
+  vehicle,
   onClick,
 }: {
-  position: LatLngTuple;
-  bearing: number;
-  speed: number;
+  vehicle: Vehicle;
   onClick: () => void;
 }) {
   const customIcon = divIcon({
     className: 'custom-div-icon',
-    html: `<img src="/navigation.svg" class="navigation-icon" style="transform: rotate(${bearing}deg);" />`,
+    html: `<img src="/navigation.svg" class="navigation-icon" style="transform: rotate(${vehicle.bearing}deg);" />`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
 
   return (
     <Marker
-      position={position}
+      position={vehicle.position}
       icon={customIcon}
       eventHandlers={{ click: onClick }}
     >
@@ -152,7 +183,30 @@ function VehicleMarker({
         offset={[0, -20]}
         className="speed-tooltip"
       >
-        {speed} км/ч
+        {vehicle.speed} км/ч
+      </Tooltip>
+    </Marker>
+  );
+}
+
+function DestinationMarker({
+  position,
+  isStart,
+}: {
+  position: LatLngTuple;
+  isStart: boolean;
+}) {
+  const icon = divIcon({
+    className: `custom-div-icon ${isStart ? 'start-icon' : 'end-icon'}`,
+    html: isStart ? '🟢' : '🔴',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+
+  return (
+    <Marker position={position} icon={icon}>
+      <Tooltip permanent direction="top" offset={[0, -20]}>
+        {isStart ? 'Начало' : 'Конец'}
       </Tooltip>
     </Marker>
   );
@@ -173,16 +227,9 @@ function MapEventHandler({
 }
 
 export default function MapPage() {
+  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [currentPosition, setCurrentPosition] = useState<LatLngTuple>(
-    vehicle.startPoint
-  );
-  const [routePoints, setRoutePoints] = useState<LatLngTuple[]>([]);
-  const [routeIndex, setRouteIndex] = useState(0);
-  const [bearing, setBearing] = useState(0);
-  const [speed, setSpeed] = useState(vehicle.speed);
   const [mapCenter, setMapCenter] = useState<LatLngTuple>([48.0196, 66.9237]); // Center of Kazakhstan
-  const mapRef = useRef<L.Map | null>(null);
 
   const calculateBearing = useCallback(
     (start: LatLngTuple, end: LatLngTuple) => {
@@ -206,47 +253,55 @@ export default function MapPage() {
   );
 
   useEffect(() => {
-    if (routePoints.length < 2 || routeIndex >= routePoints.length - 1) return;
+    const updateVehicles = () => {
+      setVehicles((prevVehicles) =>
+        prevVehicles.map((vehicle) => {
+          if (
+            vehicle.route.length < 2 ||
+            vehicle.routeIndex >= vehicle.route.length - 1
+          ) {
+            return vehicle;
+          }
 
-    const updateInterval = setInterval(() => {
-      setRouteIndex((prevIndex) => {
-        const nextIndex = prevIndex + 1;
-        if (nextIndex >= routePoints.length - 1) {
-          clearInterval(updateInterval);
-          return prevIndex;
-        }
+          const nextIndex = vehicle.routeIndex + 1;
+          const currentPoint = vehicle.route[vehicle.routeIndex];
+          const nextPoint = vehicle.route[nextIndex];
 
-        const currentPoint = routePoints[prevIndex];
-        const nextPoint = routePoints[nextIndex];
-
-        setCurrentPosition(nextPoint);
-        setBearing(calculateBearing(currentPoint, nextPoint));
-
-        return nextIndex;
-      });
-    }, 1000); // Update every second
-
-    return () => clearInterval(updateInterval);
-  }, [routePoints, routeIndex, calculateBearing]);
-
-  useEffect(() => {
-    const updateSpeed = () => {
-      const newSpeed = Math.floor(Math.random() * 30) + 50;
-      setSpeed(newSpeed);
+          return {
+            ...vehicle,
+            position: nextPoint,
+            routeIndex: nextIndex,
+            bearing: calculateBearing(currentPoint, nextPoint),
+            speed: Math.floor(Math.random() * 30) + 50, // Random speed between 50 and 80 km/h
+          };
+        })
+      );
     };
 
-    const intervalId = setInterval(updateSpeed, 5000); // Update every 5 seconds
+    const intervalId = setInterval(updateVehicles, 1000); // Update every second
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [calculateBearing]);
 
-  const handleRouteFound = useCallback((route: LatLngTuple[]) => {
-    setRoutePoints(route);
-    setRouteIndex(0);
-  }, []);
+  const handleRouteFound = useCallback(
+    (route: LatLngTuple[], vehicleId: string) => {
+      setVehicles((prevVehicles) =>
+        prevVehicles.map((vehicle) =>
+          vehicle.id === vehicleId
+            ? { ...vehicle, route, routeIndex: 0 }
+            : vehicle
+        )
+      );
+    },
+    []
+  );
 
-  const handleVehicleClick = useCallback(() => {
+  const handleVehicleClick = useCallback((vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
+  }, []);
+
+  const handleCloseVehicleDetails = useCallback(() => {
+    setSelectedVehicle(null);
   }, []);
 
   const handleMapDragEnd = useCallback((center: LatLngTuple) => {
@@ -263,30 +318,47 @@ export default function MapPage() {
             center={mapCenter}
             zoom={5}
             style={{ height: '100%', width: '100%' }}
-            ref={mapRef}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            <RoutingMachine
-              startPoint={vehicle.startPoint}
-              endPoint={vehicle.endPoint}
-              onRouteFound={handleRouteFound}
-            />
-            <Polyline positions={routePoints} color="#4CAF50" weight={4} />
-            <VehicleMarker
-              position={currentPosition}
-              bearing={bearing}
-              speed={speed}
-              onClick={handleVehicleClick}
-            />
+            {vehicles.map((vehicle) => (
+              <React.Fragment key={vehicle.id}>
+                <RoutingMachine
+                  startPoint={vehicle.startPoint}
+                  endPoint={vehicle.endPoint}
+                  onRouteFound={(route) => handleRouteFound(route, vehicle.id)}
+                />
+                {selectedVehicle && selectedVehicle.id === vehicle.id && (
+                  <>
+                    <Polyline
+                      positions={vehicle.route}
+                      color="#4CAF50"
+                      weight={4}
+                    />
+                    <DestinationMarker
+                      position={vehicle.startPoint}
+                      isStart={true}
+                    />
+                    <DestinationMarker
+                      position={vehicle.endPoint}
+                      isStart={false}
+                    />
+                  </>
+                )}
+                <VehicleMarker
+                  vehicle={vehicle}
+                  onClick={() => handleVehicleClick(vehicle)}
+                />
+              </React.Fragment>
+            ))}
             <MapEventHandler onDragEnd={handleMapDragEnd} />
           </MapContainer>
           {selectedVehicle && (
             <VehicleDetails
-              vehicle={{ ...selectedVehicle, speed, position: currentPosition }}
-              onClose={() => setSelectedVehicle(null)}
+              vehicle={selectedVehicle}
+              onClose={handleCloseVehicleDetails}
             />
           )}
         </div>
