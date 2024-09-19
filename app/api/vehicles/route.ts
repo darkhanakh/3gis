@@ -5,7 +5,7 @@ import prisma from '@/prisma/prisma';
 const vehicleSchema = z.object({
   driver: z.string().min(2),
   phoneNumber: z.string().min(10),
-  vehicleType: z.enum(['Car', 'Van', 'Truck']),
+  vehicleType: z.enum(['Автомобиль', 'Фургон', 'Грузовик']),
   currentMission: z.string().optional(),
   location: z.string().optional(),
 });
