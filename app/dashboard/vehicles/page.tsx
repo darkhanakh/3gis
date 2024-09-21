@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Table,
   TableBody,
@@ -26,20 +27,27 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Plus,
+  ExternalLink,
 } from 'lucide-react';
 
 interface Vehicle {
   id: string;
-  driver: string;
+  driverId: string;
   phoneNumber: string;
-  currentMission: string | null;
-  location: string | null;
+  vehicleNumber: string;
+  currentMission: string;
+  location: string;
   speed: number;
   malfunctions: number;
   vehicleType: string;
   status: string;
   createdAt: string;
   updatedAt: string;
+  driver: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 interface Props {
@@ -73,10 +81,10 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
 
   const filteredVehicles = vehicles.filter(
     (vehicle) =>
-      vehicle.driver.toLowerCase().includes(search.toLowerCase()) ||
-      (vehicle.location &&
-        vehicle.location.toLowerCase().includes(search.toLowerCase())) ||
-      vehicle.vehicleType.toLowerCase().includes(search.toLowerCase())
+      vehicle.driver.name.toLowerCase().includes(search.toLowerCase()) ||
+      vehicle.location.toLowerCase().includes(search.toLowerCase()) ||
+      vehicle.vehicleType.toLowerCase().includes(search.toLowerCase()) ||
+      vehicle.vehicleNumber.toLowerCase().includes(search.toLowerCase())
   );
 
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
@@ -99,24 +107,24 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Транспорт</h1>
         <Button onClick={() => router.push('/dashboard/vehicles/create')}>
-          <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+          <Plus className="mr-2 h-4 w-4" /> Зарегистрировать транспорт
         </Button>
       </div>
       <div className="flex justify-between mb-4">
         <Input
           className="max-w-sm"
-          placeholder="Search"
+          placeholder="Поиск"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
+            <SelectValue placeholder="Сортировать по" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="status">Status</SelectItem>
+            <SelectItem value="newest">Новые</SelectItem>
+            <SelectItem value="oldest">Старые</SelectItem>
+            <SelectItem value="status">Статус</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -125,21 +133,24 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
           <TableRow>
             <TableHead>ID транспорта</TableHead>
             <TableHead>Водитель</TableHead>
-            <TableHead>Phone Number</TableHead>
+            <TableHead>Номер телефона</TableHead>
+            <TableHead>Номер транспорта</TableHead>
             <TableHead>Текущая миссия</TableHead>
             <TableHead>Локация</TableHead>
             <TableHead>Скорость</TableHead>
             <TableHead>Кол-во неисправностей</TableHead>
             <TableHead>Вид транспорта</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Статус</TableHead>
+            <TableHead>Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {paginatedVehicles.map((vehicle) => (
             <TableRow key={vehicle.id}>
               <TableCell>{vehicle.id}</TableCell>
-              <TableCell>{vehicle.driver}</TableCell>
+              <TableCell>{vehicle.driver.name}</TableCell>
               <TableCell>{vehicle.phoneNumber}</TableCell>
+              <TableCell>{vehicle.vehicleNumber}</TableCell>
               <TableCell>{vehicle.currentMission || '-'}</TableCell>
               <TableCell>{vehicle.location || '-'}</TableCell>
               <TableCell>{vehicle.speed} km/h</TableCell>
@@ -153,6 +164,14 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
                 >
                   {vehicle.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <Link href={`/dashboard/vehicles/${vehicle.id}`} passHref>
+                  <Button variant="ghost" size="sm">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Подробнее
+                  </Button>
+                </Link>
               </TableCell>
             </TableRow>
           ))}
@@ -176,7 +195,7 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium">
-          Page {currentPage} of {totalPages}
+          Страница {currentPage} из {totalPages}
         </span>
         <Button
           variant="outline"

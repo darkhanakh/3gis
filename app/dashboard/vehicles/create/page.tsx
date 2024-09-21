@@ -26,10 +26,8 @@ import {
 import { toast } from '@/hooks/use-toast';
 
 const vehicleSchema = z.object({
-  driver: z.string().min(2, 'Имя водителя должно содержать минимум 2 символа'),
-  phoneNumber: z
-    .string()
-    .min(10, 'Номер телефона должен содержать минимум 10 символов'),
+  vehicleNumber: z.string().min(1, 'Номер транспортного средства обязателен'),
+  phoneNumber: z.string().min(1, 'Номер телефона обязателен'),
   vehicleType: z.enum(['Автомобиль', 'Фургон', 'Грузовик']),
   currentMission: z.string().optional(),
   location: z.string().optional(),
@@ -42,7 +40,7 @@ export default function AddVehiclePage() {
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
-      driver: '',
+      vehicleNumber: '',
       phoneNumber: '',
       vehicleType: 'Автомобиль',
       currentMission: '',
@@ -68,7 +66,7 @@ export default function AddVehiclePage() {
         title: 'Транспортное средство создано',
         description: 'Новое транспортное средство успешно добавлено.',
       });
-      router.push('/vehicles');
+      router.push('/dashboard/vehicles');
     } catch (error) {
       console.error('Ошибка создания транспортного средства:', error);
       toast({
@@ -89,14 +87,16 @@ export default function AddVehiclePage() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
             control={form.control}
-            name="driver"
+            name="vehicleNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Имя водителя</FormLabel>
+                <FormLabel>Номер транспортного средства</FormLabel>
                 <FormControl>
-                  <Input placeholder="Иван Иванов" {...field} />
+                  <Input placeholder="A123BC" {...field} />
                 </FormControl>
-                <FormDescription>Введите полное имя водителя.</FormDescription>
+                <FormDescription>
+                  Введите номер транспортного средства.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -108,11 +108,9 @@ export default function AddVehiclePage() {
               <FormItem>
                 <FormLabel>Номер телефона</FormLabel>
                 <FormControl>
-                  <Input placeholder="+7 (777) 000-0000" {...field} />
+                  <Input placeholder="+7 123 456 7890" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Введите контактный номер водителя.
-                </FormDescription>
+                <FormDescription>Введите номер телефона.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

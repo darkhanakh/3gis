@@ -25,6 +25,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   Request       Request[]
+  Vehicle       Vehicle[]
 }
 
 model Request {
@@ -42,8 +43,10 @@ model Request {
 
 model Vehicle {
   id             String   @id @default(cuid())
-  driver         String
+  driver         User     @relation(fields: [driverId], references: [id])
+  driverId       String
   phoneNumber    String
+  vehicleNumber  String
   currentMission String?
   location       String?
   speed          Int?     @default(0)
