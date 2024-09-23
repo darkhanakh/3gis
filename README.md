@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 3GIS
 
-## Getting Started
+![3GIS Application Screenshot](docs/images/application-screenshot.png)
 
-First, run the development server:
+## Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**3GIS** is a full-stack web application designed to help companies that transport oil efficiently manage and control their entire transportation system. The application provides real-time tracking of vehicles through GIS data and telemetry, allowing administrators and managers to monitor transport routes and vehicle performance on an intuitive dashboard.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The platform integrates geolocation and telemetry data from individual vehicles, visualizing this data through interactive maps using Mapbox for precise route monitoring. It also includes powerful backend support for handling large geographic datasets, optimized through PostGIS in PostgreSQL for faster query response times.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- **Real-time vehicle tracking**: Get real-time updates on transport routes using GIS and telemetry data from each vehicle.
+- **Interactive map visualization**: View and analyze transport routes through interactive maps powered by Mapbox.
+- **Telemetry data integration**: Monitor vehicle performance, fuel usage, and other critical telemetry data to ensure efficient operations.
+- **Optimized data queries**: Spatial queries are optimized with PostGIS in PostgreSQL to handle large datasets quickly and efficiently.
+- **Dockerized deployment**: The application is containerized using Docker for easy deployment and consistent development environments.
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Frontend**:
+    - Next.js
+    - React
+    - HTML/CSS
+    - JavaScript
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Backend**:
+    - Node.js
+    - Express.js
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- **Database**:
+    - PostgreSQL with PostGIS extension for geographic data
+    - Redis for caching and real-time updates
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- **Mapping**:
+    - Leaflet for geolocation and route visualization
