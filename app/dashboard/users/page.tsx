@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import {
   Plus,
   ExternalLink,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Driver {
   id: string;
@@ -41,37 +43,32 @@ interface Driver {
   createdAt: string;
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 const UsersPage = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
 
-  useEffect(() => {
-    fetchDrivers();
-  }, []);
+  const {
+    data: drivers,
+    error,
+    isLoading,
+  } = useSWR<Driver[]>('/api/user', fetcher);
 
-  const fetchDrivers = async () => {
-    try {
-      const response = await fetch('/api/drivers');
-      if (!response.ok) {
-        throw new Error('Failed to fetch drivers');
-      }
-      const data = await response.json();
-      setDrivers(data);
-    } catch (error) {
-      console.error('Error fetching drivers:', error);
-    }
-  };
+  if (error) {
+    console.error('Error fetching drivers:', error);
+  }
 
-  const filteredDrivers = drivers.filter(
-    (driver) =>
-      driver.name.toLowerCase().includes(search.toLowerCase()) ||
-      driver.email.toLowerCase().includes(search.toLowerCase()) ||
-      driver.phoneNumber.includes(search)
-  );
+  const filteredDrivers =
+    drivers?.filter(
+      (driver) =>
+        driver.name.toLowerCase().includes(search.toLowerCase()) ||
+        driver.email.toLowerCase().includes(search.toLowerCase()) ||
+        driver.phoneNumber.includes(search)
+    ) || [];
 
   const sortedDrivers = [...filteredDrivers].sort((a, b) => {
     if (sortBy === 'newest')
@@ -127,30 +124,60 @@ const UsersPage = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedDrivers.map((driver) => (
-            <TableRow key={driver.id}>
-              <TableCell className="font-medium">{driver.name}</TableCell>
-              <TableCell>{driver.email}</TableCell>
-              <TableCell>{driver.phoneNumber}</TableCell>
-              <TableCell>{driver.licenseNumber}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={driver.status === 'active' ? 'default' : 'secondary'}
-                >
-                  {driver.status}
-                </Badge>
-              </TableCell>
-              <TableCell>{driver.vehicleAssigned || '-'}</TableCell>
-              <TableCell>
-                <Link href={`/dashboard/users/${driver.id}`} passHref>
-                  <Button variant="ghost" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Подробнее
-                  </Button>
-                </Link>
-              </TableCell>
-            </TableRow>
-          ))}
+          {isLoading
+            ? Array(5)
+                .fill(0)
+                .map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[250px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[250px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[150px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[150px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[100px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[150px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-8 w-[100px]" />
+                    </TableCell>
+                  </TableRow>
+                ))
+            : paginatedDrivers.map((driver) => (
+                <TableRow key={driver.id}>
+                  <TableCell className="font-medium">{driver.name}</TableCell>
+                  <TableCell>{driver.email}</TableCell>
+                  <TableCell>{driver.phoneNumber}</TableCell>
+                  <TableCell>{driver.licenseNumber}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        driver.status === 'active' ? 'default' : 'secondary'
+                      }
+                    >
+                      {driver.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{driver.vehicleAssigned || '-'}</TableCell>
+                  <TableCell>
+                    <Link href={`/dashboard/users/${driver.id}`} passHref>
+                      <Button variant="ghost" size="sm">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Подробнее
+                      </Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
         </TableBody>
       </Table>
       <div className="flex items-center justify-end space-x-2 py-4">

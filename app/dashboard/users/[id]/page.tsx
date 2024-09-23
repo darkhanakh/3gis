@@ -41,7 +41,7 @@ const DriverPage = () => {
 
   const fetchDriver = async () => {
     try {
-      const response = await fetch(`/api/drivers/${id}`);
+      const response = await fetch(`/api/user/${id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch driver');
       }
