@@ -46,6 +46,7 @@ model Vehicle {
   driver         User     @relation(fields: [driverId], references: [id])
   driverId       String
   phoneNumber    String
+  vehicleNumber  String
   currentMission String?
   location       String?
   speed          Int?     @default(0)

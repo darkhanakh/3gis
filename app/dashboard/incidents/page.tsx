@@ -30,32 +30,25 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-interface Vehicle {
+interface Incident {
   id: string;
-  driverId: string;
-  phoneNumber: string;
-  vehicleNumber: string;
-  currentMission: string;
+  type: string;
   location: string;
-  speed: number;
-  malfunctions: number;
-  vehicleType: string;
+  date: string;
+  time: string;
   status: string;
+  severity: string;
+  reportedBy: string;
   createdAt: string;
   updatedAt: string;
-  driver: {
-    id: string;
-    name: string;
-    email: string;
-  };
 }
 
 interface Props {
   className?: string;
 }
 
-const VehiclesPage: React.FC<Props> = ({ className }) => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+const IncidentsPage: React.FC<Props> = ({ className }) => {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,31 +56,31 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
   const router = useRouter();
 
   useEffect(() => {
-    fetchVehicles();
+    fetchIncidents();
   }, []);
 
-  const fetchVehicles = async () => {
+  const fetchIncidents = async () => {
     try {
-      const response = await fetch('/api/vehicles');
+      const response = await fetch('/api/incidents');
       if (!response.ok) {
-        throw new Error('Failed to fetch vehicles');
+        throw new Error('Failed to fetch incidents');
       }
       const data = await response.json();
-      setVehicles(data);
+      setIncidents(data);
     } catch (error) {
-      console.error('Error fetching vehicles:', error);
+      console.error('Error fetching incidents:', error);
     }
   };
 
-  const filteredVehicles = vehicles.filter(
-    (vehicle) =>
-      vehicle.driver.name.toLowerCase().includes(search.toLowerCase()) ||
-      vehicle.location.toLowerCase().includes(search.toLowerCase()) ||
-      vehicle.vehicleType.toLowerCase().includes(search.toLowerCase()) ||
-      vehicle.vehicleNumber.toLowerCase().includes(search.toLowerCase())
+  const filteredIncidents = incidents.filter(
+    (incident) =>
+      incident.type.toLowerCase().includes(search.toLowerCase()) ||
+      incident.location.toLowerCase().includes(search.toLowerCase()) ||
+      incident.status.toLowerCase().includes(search.toLowerCase()) ||
+      incident.reportedBy.toLowerCase().includes(search.toLowerCase())
   );
 
-  const sortedVehicles = [...filteredVehicles].sort((a, b) => {
+  const sortedIncidents = [...filteredIncidents].sort((a, b) => {
     if (sortBy === 'newest')
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     if (sortBy === 'oldest')
@@ -96,8 +89,8 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
     return 0;
   });
 
-  const totalPages = Math.ceil(sortedVehicles.length / itemsPerPage);
-  const paginatedVehicles = sortedVehicles.slice(
+  const totalPages = Math.ceil(sortedIncidents.length / itemsPerPage);
+  const paginatedIncidents = sortedIncidents.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -105,9 +98,9 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
   return (
     <div className={`p-6 ${className}`}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Транспорт</h1>
-        <Button onClick={() => router.push('/dashboard/vehicles/create')}>
-          <Plus className="mr-2 h-4 w-4" /> Зарегистрировать транспорт
+        <h1 className="text-2xl font-bold">Дорожные инциденты</h1>
+        <Button onClick={() => router.push('/dashboard/incidents/create')}>
+          <Plus className="mr-2 h-4 w-4" /> Добавить инцидент
         </Button>
       </div>
       <div className="flex justify-between mb-4">
@@ -131,42 +124,38 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID транспорта</TableHead>
-            <TableHead>Водитель</TableHead>
-            <TableHead>Номер телефона</TableHead>
-            <TableHead>Номер транспорта</TableHead>
-            <TableHead>Текущая миссия</TableHead>
-            <TableHead>Локация</TableHead>
-            <TableHead>Скорость</TableHead>
-            <TableHead>Кол-во неисправностей</TableHead>
-            <TableHead>Вид транспорта</TableHead>
+            <TableHead>ID инцидента</TableHead>
+            <TableHead>Тип</TableHead>
+            <TableHead>Местоположение</TableHead>
+            <TableHead>Дата</TableHead>
+            <TableHead>Время</TableHead>
             <TableHead>Статус</TableHead>
+            <TableHead>Серьезность</TableHead>
+            <TableHead>Кем сообщено</TableHead>
             <TableHead>Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedVehicles.map((vehicle) => (
-            <TableRow key={vehicle.id}>
-              <TableCell>{vehicle.id}</TableCell>
-              <TableCell>{vehicle.driver.name}</TableCell>
-              <TableCell>{vehicle.phoneNumber}</TableCell>
-              <TableCell>{vehicle.vehicleNumber}</TableCell>
-              <TableCell>{vehicle.currentMission || '-'}</TableCell>
-              <TableCell>{vehicle.location || '-'}</TableCell>
-              <TableCell>{vehicle.speed} km/h</TableCell>
-              <TableCell>{vehicle.malfunctions}</TableCell>
-              <TableCell>{vehicle.vehicleType}</TableCell>
+          {paginatedIncidents.map((incident) => (
+            <TableRow key={incident.id}>
+              <TableCell>{incident.id}</TableCell>
+              <TableCell>{incident.type}</TableCell>
+              <TableCell>{incident.location}</TableCell>
+              <TableCell>{incident.date}</TableCell>
+              <TableCell>{incident.time}</TableCell>
               <TableCell>
                 <Badge
                   variant={
-                    vehicle.status === 'active' ? 'default' : 'secondary'
+                    incident.status === 'active' ? 'default' : 'secondary'
                   }
                 >
-                  {vehicle.status}
+                  {incident.status}
                 </Badge>
               </TableCell>
+              <TableCell>{incident.severity}</TableCell>
+              <TableCell>{incident.reportedBy}</TableCell>
               <TableCell>
-                <Link href={`/dashboard/vehicles/${vehicle.id}`} passHref>
+                <Link href={`/dashboard/incidents/${incident.id}`} passHref>
                   <Button variant="ghost" size="sm">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Подробнее
@@ -220,4 +209,4 @@ const VehiclesPage: React.FC<Props> = ({ className }) => {
   );
 };
 
-export default VehiclesPage;
+export default IncidentsPage;

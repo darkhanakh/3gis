@@ -94,13 +94,10 @@ export default function DashboardLayout({
         case 'ADMIN':
           router.replace('/admin/dashboard');
           break;
-        case 'DRIVER':
-          router.replace('/driver/dashboard');
-          break;
         case 'MANAGER':
           router.replace('/manager/dashboard');
           break;
-        case 'USER':
+        case 'USER' && 'DRIVER':
           // We're already on the correct page
           break;
         default:

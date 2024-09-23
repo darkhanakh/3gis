@@ -5,13 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { useState } from 'react';
+import { SettingsDriverRegistration } from '@/components/shared/settings-driver-registration';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const [notificationEmail, setNotificationEmail] = useState(false);
-  const [notificationPush, setNotificationPush] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -65,41 +62,8 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Настройки уведомлений</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="email-notifications">Email уведомления</Label>
-              <p className="text-sm text-muted-foreground">
-                Получать уведомления на почту.
-              </p>
-            </div>
-            <Switch
-              id="email-notifications"
-              checked={notificationEmail}
-              onCheckedChange={setNotificationEmail}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="push-notifications">Push уведомления</Label>
-              <p className="text-sm text-muted-foreground">
-                Получать push уведомления на устройства.
-              </p>
-            </div>
-            <Switch
-              id="push-notifications"
-              checked={notificationPush}
-              onCheckedChange={setNotificationPush}
-            />
-          </div>
-          <Button className="mt-4">Сохранить настройки уведомлений</Button>
-        </CardContent>
-      </Card>
+      {/* Driver Registration */}
+      <SettingsDriverRegistration />
     </div>
   );
 }
