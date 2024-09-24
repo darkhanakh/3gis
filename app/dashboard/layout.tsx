@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Plus,
   List,
+  Bomb,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
@@ -57,6 +58,12 @@ const menuItems = [
     icon: Boxes,
     label: 'Заявки',
     href: '/dashboard/invoices',
+  },
+  {
+    name: 'incidents',
+    icon: Bomb,
+    label: 'Инциденты',
+    href: '/dashboard/incidents',
   },
   {
     name: 'analytics',
