@@ -4,7 +4,9 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/app/providers';
 import { Toaster } from '@/components/ui/toaster';
-import React from 'react';
+import React, { Suspense } from 'react';
+import Loading from '@/app/loading';
+import { NavigationEvents } from '@/components/shared/navigation-events';
 
 const font = Roboto({ subsets: ['latin'], weight: '400' });
 
@@ -21,8 +23,11 @@ export default function RootLayout({
     <html lang="en">
       <Providers>
         <body className={cn(font.className, 'dark')}>
-          {children}
-          <Toaster />
+          <Suspense fallback={<Loading />}>
+            {children}
+            <Toaster />
+            <NavigationEvents />
+          </Suspense>
         </body>
       </Providers>
     </html>

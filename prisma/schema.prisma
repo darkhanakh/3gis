@@ -53,6 +53,19 @@ model Vehicle {
   malfunctions   Int?     @default(0)
   vehicleType    String
   status         String   @default("active")
+  fuelAmount     Float?   @default(0)
+  latitude       Float?
+  longitude      Float?
+  startLatitude  Float?
+  startLongitude Float?
+  endLatitude    Float?
+  endLongitude   Float?
+  route          Json? // Stored as an array of [lat, lng] coordinates
+  routeIndex     Int?     @default(0)
+  bearing        Float?   @default(0)
+  weather        Json? // Stored as { temperature: float, humidity: float, precipitation: float }
+  engineLoad     Int?     @default(0)
+  arrivalTime    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
