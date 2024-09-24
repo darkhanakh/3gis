@@ -1,24 +1,21 @@
+// MapPage.jsx
+
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
   Marker,
   Polyline,
-  useMap,
-  useMapEvents,
   Tooltip,
+  useMapEvents,
 } from 'react-leaflet';
 import L, { LatLngTuple, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine';
 import { VehicleDetails } from '@/components/shared/vehicle-details';
 
 const mapStyles = `
-.leaflet-routing-container {
-  display: none;
-}
 .custom-div-icon {
   background: none;
   border: none;
@@ -112,58 +109,23 @@ const mockVehicles: Vehicle[] = [
   },
 ];
 
-function RoutingMachine({
-  startPoint,
-  endPoint,
-  onRouteFound,
-}: {
-  startPoint: LatLngTuple;
-  endPoint: LatLngTuple;
-  onRouteFound: (route: LatLngTuple[]) => void;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!map) return;
-
-    const routingControl = L.Routing.control({
-      waypoints: [L.latLng(startPoint), L.latLng(endPoint)],
-      routeWhileDragging: false,
-      showAlternatives: false,
-      fitSelectedRoutes: true,
-      lineOptions: {
-        styles: [{ color: '#4CAF50', weight: 4 }],
-        extendToWaypoints: true,
-        missingRouteTolerance: 0,
-      },
-      createMarker: function () {
-        return null;
-      }, // Disable default markers
-    }).addTo(map);
-
-    routingControl.on('routesfound', (e) => {
-      const routes = e.routes;
-      if (routes && routes.length > 0) {
-        const coordinates = routes[0].coordinates;
-        onRouteFound(coordinates.map((coord) => [coord.lat, coord.lng]));
-      }
-    });
-
-    return () => {
-      map.removeControl(routingControl);
-    };
-  }, [map, startPoint, endPoint, onRouteFound]);
-
-  return null;
-}
-
 function VehicleMarker({
   vehicle,
   onClick,
+  isSelected,
 }: {
   vehicle: Vehicle;
   onClick: () => void;
+  isSelected: boolean;
 }) {
+  const markerRef = useRef<L.Marker>(null);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng(vehicle.position);
+    }
+  }, [vehicle.position]);
+
   const customIcon = divIcon({
     className: 'custom-div-icon',
     html: `<img src="/navigation.svg" class="navigation-icon" style="transform: rotate(${vehicle.bearing}deg);" />`,
@@ -172,20 +134,30 @@ function VehicleMarker({
   });
 
   return (
-    <Marker
-      position={vehicle.position}
-      icon={customIcon}
-      eventHandlers={{ click: onClick }}
-    >
-      <Tooltip
-        permanent
-        direction="top"
-        offset={[0, -20]}
-        className="speed-tooltip"
+    <>
+      <Marker
+        position={vehicle.position}
+        icon={customIcon}
+        eventHandlers={{ click: onClick }}
+        ref={markerRef}
       >
-        {vehicle.speed} км/ч
-      </Tooltip>
-    </Marker>
+        <Tooltip
+          permanent
+          direction="top"
+          offset={[0, -20]}
+          className="speed-tooltip"
+        >
+          {vehicle.speed} км/ч
+        </Tooltip>
+      </Marker>
+      {isSelected && (
+        <>
+          <Polyline positions={vehicle.route} color="#4CAF50" weight={4} />
+          <DestinationMarker position={vehicle.startPoint} isStart={true} />
+          <DestinationMarker position={vehicle.endPoint} isStart={false} />
+        </>
+      )}
+    </>
   );
 }
 
@@ -252,36 +224,61 @@ export default function MapPage() {
     []
   );
 
+  // Generate routes for all vehicles on component mount
   useEffect(() => {
-    const updateVehicles = () => {
-      setVehicles((prevVehicles) =>
-        prevVehicles.map((vehicle) => {
-          if (
-            vehicle.route.length < 2 ||
-            vehicle.routeIndex >= vehicle.route.length - 1
-          ) {
-            return vehicle;
-          }
+    vehicles.forEach((vehicle) => {
+      fetchRoute(vehicle.startPoint, vehicle.endPoint, vehicle.id);
+    });
+  }, []);
 
-          const nextIndex = vehicle.routeIndex + 1;
-          const currentPoint = vehicle.route[vehicle.routeIndex];
-          const nextPoint = vehicle.route[nextIndex];
+  const fetchRoute = useCallback(
+    async (start: LatLngTuple, end: LatLngTuple, vehicleId: string) => {
+      const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${process.env.NEXT_PUBLIC_OPENROUTESERVICE_API_KEY}&start=${start[1]},${start[0]}&end=${end[1]},${end[0]}`;
 
-          return {
-            ...vehicle,
-            position: nextPoint,
-            routeIndex: nextIndex,
-            bearing: calculateBearing(currentPoint, nextPoint),
-            speed: Math.floor(Math.random() * 30) + 50, // Random speed between 50 and 80 km/h
-          };
-        })
-      );
-    };
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const coordinates = data.features[0].geometry.coordinates.map(
+          (coord: number[]) => [coord[1], coord[0]] as LatLngTuple
+        );
+        handleRouteFound(coordinates, vehicleId);
+      } catch (error) {
+        console.error('Error fetching route:', error);
+      }
+    },
+    []
+  );
 
+  const updateVehicles = useCallback(() => {
+    setVehicles((prevVehicles) =>
+      prevVehicles.map((vehicle) => {
+        if (
+          vehicle.route.length < 2 ||
+          vehicle.routeIndex >= vehicle.route.length - 1
+        ) {
+          return vehicle;
+        }
+
+        const nextIndex = vehicle.routeIndex + 1;
+        const currentPoint = vehicle.route[vehicle.routeIndex];
+        const nextPoint = vehicle.route[nextIndex];
+
+        return {
+          ...vehicle,
+          position: nextPoint,
+          routeIndex: nextIndex,
+          bearing: calculateBearing(currentPoint, nextPoint),
+          speed: Math.floor(Math.random() * 30) + 50, // Random speed between 50 and 80 km/h
+        };
+      })
+    );
+  }, [calculateBearing]);
+
+  useEffect(() => {
     const intervalId = setInterval(updateVehicles, 1000); // Update every second
 
     return () => clearInterval(intervalId);
-  }, [calculateBearing]);
+  }, [updateVehicles]);
 
   const handleRouteFound = useCallback(
     (route: LatLngTuple[], vehicleId: string) => {
@@ -321,37 +318,15 @@ export default function MapPage() {
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              attribution="&copy; OpenStreetMap contributors"
             />
             {vehicles.map((vehicle) => (
-              <React.Fragment key={vehicle.id}>
-                <RoutingMachine
-                  startPoint={vehicle.startPoint}
-                  endPoint={vehicle.endPoint}
-                  onRouteFound={(route) => handleRouteFound(route, vehicle.id)}
-                />
-                {selectedVehicle && selectedVehicle.id === vehicle.id && (
-                  <>
-                    <Polyline
-                      positions={vehicle.route}
-                      color="#4CAF50"
-                      weight={4}
-                    />
-                    <DestinationMarker
-                      position={vehicle.startPoint}
-                      isStart={true}
-                    />
-                    <DestinationMarker
-                      position={vehicle.endPoint}
-                      isStart={false}
-                    />
-                  </>
-                )}
-                <VehicleMarker
-                  vehicle={vehicle}
-                  onClick={() => handleVehicleClick(vehicle)}
-                />
-              </React.Fragment>
+              <VehicleMarker
+                key={vehicle.id}
+                vehicle={vehicle}
+                onClick={() => handleVehicleClick(vehicle)}
+                isSelected={selectedVehicle?.id === vehicle.id}
+              />
             ))}
             <MapEventHandler onDragEnd={handleMapDragEnd} />
           </MapContainer>
