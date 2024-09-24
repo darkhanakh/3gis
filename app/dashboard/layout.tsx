@@ -67,7 +67,7 @@ const menuItems = [
   {
     name: 'users',
     icon: Users,
-    label: 'Пользователи',
+    label: 'Водители',
     href: '/dashboard/users',
   },
   {

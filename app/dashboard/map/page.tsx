@@ -14,6 +14,7 @@ import {
 import L, { LatLngTuple, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { VehicleDetails } from '@/components/shared/vehicle-details';
+import { calculateBearingHelper } from '@/lib/utils';
 
 const mapStyles = `
 .custom-div-icon {
@@ -203,26 +204,7 @@ export default function MapPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [mapCenter, setMapCenter] = useState<LatLngTuple>([48.0196, 66.9237]); // Center of Kazakhstan
 
-  const calculateBearing = useCallback(
-    (start: LatLngTuple, end: LatLngTuple) => {
-      const toRad = (degree: number) => (degree * Math.PI) / 180;
-      const toDeg = (radian: number) => (radian * 180) / Math.PI;
-
-      const lat1 = toRad(start[0]);
-      const lon1 = toRad(start[1]);
-      const lat2 = toRad(end[0]);
-      const lon2 = toRad(end[1]);
-
-      const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
-      const x =
-        Math.cos(lat1) * Math.sin(lat2) -
-        Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-      const bearing = toDeg(Math.atan2(y, x));
-
-      return (bearing + 360) % 360;
-    },
-    []
-  );
+  const calculateBearing = useCallback(calculateBearingHelper, []);
 
   // Generate routes for all vehicles on component mount
   useEffect(() => {
